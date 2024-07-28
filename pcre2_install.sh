@@ -6,17 +6,35 @@ set -u
 # qt5 need prec2-16
 #
 
-install_pcre2() {
+# ----- ----- version config ----- -----
+tag=10.44
+repo=https://github.com/PCRE2Project/pcre2
+
+download_repo() {
+  local t=master
+  [ $# -ge 1 ] && t=pcre2-$1
+
   cd /usr/local/src
-
-  local ver="10.42"
-  local pkgDir="pcre2-$ver"
-  if [ ! -f $pkgDir.tar.bz2 ]; then sudo wget --no-verbose \
-	  https://github.com/PCRE2Project/pcre2/releases/download/$pkgDir/$pkgDir.tar.bz2 # 1.8M
+  if [ ! -d pcre2 ]; then 
+    git clone --branch $t --depth 1 \
+      https://github.com/PCRE2Project/pcre2.git
   fi
-  sudo tar -jxf $pkgDir.tar.bz2
+}
 
-  cd $pkgDir
+install_pcre2() {
+  local ver="10.42"
+  [ $# -ge 1 ] && ver=$1
+
+  local pkgDir="pcre2-$ver"
+  local pkg=pcre2-$ver.tar.bz2
+
+  sudo wget --no-verbose --directory-prefix='/opt' \
+    --no-clobber $repo/releases/download/$pkgDir/$pkg # 1.8M
+
+  if [ ! -d /usr/local/src/$pkgDir ]; then
+    sudo tar -jxf /opt/$pkg -C /usr/local/src
+  fi
+  cd /usr/local/src/$pkgDir
 
   # default only have pcre2-8
   sudo ./configure \
@@ -38,9 +56,8 @@ install_pcre2() {
 sudo apt install -y gawk
 sudo apt install -y valgrind # check memory tool
 
-pos=`pwd`
-install_pcre2
-cd $pos
+#download_repo $tag
+install_pcre2 $tag
 
 # config
 echo "export LD_LIBRARY_PATH=\$LD_LIBRARY_PATH:/usr/local/lib" >> ~/.bashrc
