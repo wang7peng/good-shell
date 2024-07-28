@@ -6,29 +6,34 @@
 
 set -u
 
+# ----- ----- version conf ----- -----
+buildroot='2024.05.1'
+
 check_env() {
   # menuconfig need flex+bison
   flex --version
   if [ $? -eq 127 ]; then sudo apt install -y bison flex 
   fi
   bison --version | head --lines=1
+
+  # buildroot dependencies
+  sudo apt install -y ncurses-dev rsync
 }
 
 buildroot_comiple() {
-  # option: "2023.02.8"
-  local verYM="2023.11"
+  local v="2024.02.4" # lts
+  [ $# -eq 1 ] && v=$1
 
-  if [ ! -d buildroot-$verYM ]; then
-    wget https://buildroot.org/downloads/buildroot-$verYM.tar.gz
-    tar -xzf buildroot-$verYM.tar.gz
-    rm buildroot-$verYM.tar.gz
+  local pkg=buildroot-$v.tar.gz
+  sudo wget -nc -P /opt \
+    https://buildroot.org/downloads/$pkg
+  if [ ! -d /usr/local/etc/buildroot-$v ]; then
+    sudo tar -zxf /opt/$pkg -C /usr/local/src/
   fi
-  cd buildroot-$verYM
 
+  cd /usr/local/src/${pkg%.tar*}
   make menuconfig
   make
-
-  cd ..
 }
 
 # ----- ----- main ----- -----
@@ -40,38 +45,39 @@ check_env
 op=0
 read -p "no buildroot? [Y/n] " op
 case $op in
-  Y | y | 1) buildroot_comiple;; 
+  Y | y | 1) buildroot_comiple $buildroot;; 
   *)
   # -g: not owner, -o: not group
   ls -og -h --color=auto \
-    /home/wangpeng/Desktop/buildroot-2023.11/output/host/bin
-esac 
+    /usr/local/src/buildroot-$buildroot/output/host/bin
+esac
 
 # set up env of mips
 export ARCH=mips
 export CROSS_COMPILE=/home/wangpeng/Desktop/buildroot-2023.11/output/host/bin/mipsel-linux-
 
 # step 2 get u-boot
-verYM="2023.10"
+verYM="2024.10"
 op=1
 read -p  "which uboot? 
           1 u-boot-2018.09  # 12M
-	  2 u-boot-2023.10
-	  3 u-boot-2024.01  # 19M
-select (default 2023.10) > " op
+	  2 u-boot-2021.10  # 17M
+	  3 u-boot-2024.07  # 25M
+select (default 2024.10) > " op
 
 case $op in 
   1) verYM="2018.09";;
+  2) verYM="2021.10";;
   3) verYM="2024.01";;
   *)
 esac 
 
-if [ ! -f u-boot-$verYM.tar.bz2 ]; then
-  wget https://ftp.denx.de/pub/u-boot/u-boot-$verYM.tar.bz2
-fi
+pkg=u-boot-$verYM.tar.bz2
+sudo  wget -nc -P /opt https://ftp.denx.de/pub/u-boot/$pkg
 
+cd ~/Desktop
 if [ ! -d u-boot-$verYM ]; then
-  tar jxf u-boot-$verYM.tar.bz2
+  tar jxf /opt/$pkg -C .
 fi
 
 cd u-boot-$verYM
