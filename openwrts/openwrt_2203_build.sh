@@ -3,10 +3,15 @@
 # ----- ----- ----- ----- ----- -----
 #  platform: ubuntu22 (with base tools)
 #  Desc: openwrt2203 + mt7621 
-#  Date: 2023.12.06
+#
+#  Note: v22.03.7 is EOL of v22.03
 # ----- ----- ----- ----- ----- -----
 
 set -u
+
+# ----- ----- version conf ----- -----
+ver='22.03.7'
+######################################
 
 update_env() {
   local op=0
@@ -36,6 +41,19 @@ config_git() {
   git config --global http.lowSpeedTime 600
 }
 
+# get tar.gz (7.7M) from github
+download_pkg() {
+  local v=22.03.7
+  local pkgName=openwrt-$v.tar.gz
+
+  sudo wget -nc -O /opt/$pkgName \
+    https://github.com/openwrt/openwrt/archive/refs/tags/v$v.tar.gz
+
+  # tar -> /usr/local/src/openwrt-22.03.7
+  if [ ! -d /usr/local/src/${pkgName%.tar*} ]; then
+    sudo tar -zxf /opt/$pkgName -C /usr/local/src
+  fi
+}
 
 # ----- ----- main ----- -----
 config_git
@@ -47,42 +65,30 @@ case $op in
   *) exit
 esac
 
-ver="22.03.6"
-
-dirSrc=openwrt-$ver
 
 # download
-pkgSrc=${dirSrc}.tar.gz  # openwrt-22.03.6.tar.gz
-if [ ! -f $pkgSrc ]; then
-  wget --no-verbose -O $dirSrc.tar.gz  \
-       	https://github.com/openwrt/openwrt/archive/refs/tags/v22.03.6.tar.gz # 7.7M
-fi
-
-if [ ! -d $dirSrc ]; then tar -xzf $dirSrc.tar.gz 
-fi
+download_pkg $ver
 
 # get official conf file with special version
-if [ ! -f $ver.config ]; then
-  wget --no-verbose -O $ver.config \
+wget -nc --no-verbose -O $ver.config \
 	https://downloads.openwrt.org/releases/$ver/targets/ramips/mt7621/config.buildinfo
 
-  if [ $? -eq 8 ]; then rm $ver.config; exit
-  fi
+if [ $? -eq 8 ]; then rm $ver.config; exit
+else
+  checkit=`sha256sum $ver.config`
+  [ ${checkit:0:6} != "5a959a" ] && exit
 fi
-
-checkit=`sha256sum $ver.config`
-if [ ${checkit:0:6} != "abbd6c" ]; then exit;
-fi
-
-cd $dirSrc
+dirSrc=/usr/local/src/openwrt-$ver
 
 op=0
 read -p "official conf $ver have get! use it? [Y/n] " op 
 case $op in
-  Y | y | 1) cp ../$ver.config ./.config;;
+  Y | y | 1) sudo cp $ver.config $dirSrc/.config;;
   *)
 esac
 
+# into dir of source
+cd $dirSrc
 update_env
 
 make menuconfig
