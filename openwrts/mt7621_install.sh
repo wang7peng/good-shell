@@ -2,23 +2,6 @@
 
 set -u
 
-# v2.43+
-install_git() {
-  # 不用 git -v 识别, ubuntu 16.04 自带的 git 2.7 不支持 -v
-  git --version 1> /dev/null 2> /dev/null
-  if [ $? -eq 127 ]; then
-    # if not use this repo, default 2.40 will be installed
-    sudo add-apt-repository ppa:git-core/ppa
-    sudo apt update
-    sudo apt install git -y
-  else
-    git config --global core.autocrlf input
-    # if not, access git.yoctoproject.org will get a prompt: xxx verification failed
-    git config --global http.sslVerify "false"
-
-    echo "- git \t\t ok!"
-  fi
-}
 
 # v2.7.18
 install_python2() {
@@ -44,6 +27,11 @@ install_python2() {
 # include: tar awk
 init_tools() {
   sudo apt-get update
+
+  bash ../apps/git_ubuntu.sh
+  git config --global core.autocrlf input
+  # avoid get a prompt: xxx verification failed
+  git config --global http.sslVerify "false"
 
   tar --version 1> /dev/null
   if [ $? -eq 127 ]; then sudo apt install -y tar
@@ -134,8 +122,6 @@ install_openWrt() {
 
 init_tools
 
-echo "- env --- start --- "
-install_git
 init_64need32
 install_uboot
 install_python2
