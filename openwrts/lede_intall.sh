@@ -2,94 +2,41 @@
 
 set -u
 
-# include: awk tree wget vim ncurses
-init_tools() {
-  # GNU Awk v5.1
-  awk -V 2> /dev/null 1> /dev/null
-  if [[ $? -eq 2 || $? -eq 127 ]]; then sudo apt install -y gawk;
-  fi
-  awk -V | head -n 1
+# Desc: compile lede from repo
+# Platform: ubuntu
 
-  # 一开始不装也通过验证, 在后期 make 的时候才被检测到, 不装不行
-  swig 2> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y swig
-  fi
-  swig -version | head --lines=2 # first line have null strings 
+check_env() {
+  install_gnu
 
-  tree --version 1> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y tree
-  fi
+  cmake -version 2> /dev/null
+  [ $? -eq 127 ] && sudo apt install -y cmake
 
-  wget -V 1> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y wget
-  fi
+  # 合起来只用一个 apt 显示读取软件包列表的提示更简洁
+  # note1 一开始不装 swig 也通过验证, 在后期 make 的时候才被检测到, 不装不行
+  sudo apt install -y tree gawk swig \
+    libncurses5-dev libz-dev
 
-  vim --version 1> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y vim
-  fi
- 
-  sudo apt install -y libncurses5-dev libz-dev
-}
+  install_python2
 
-# v2.43+
-install_git() {
-  git -v 1> /dev/null 2> /dev/null
-  if [ $? -eq 127 ]; then
-    # if not use this repo, default 2.40 will be installed
-    sudo add-apt-repository ppa:git-core/ppa
-    sudo apt update
-    sudo apt install git -y
-  else
-    echo "- git \t\t ok!"
-  fi
-}
-
-# v3.27+
-install_cmake() {
-  cmake -version 1> /dev/null 2> /dev/null
-  if [ $? -eq 127 ]; then
-    sudo apt install cmake
-  else
-    echo "- cmake \t ok!"
-  fi
-}
-
-# v13.2+
-install_gnu() {
-  # ignore the prompt (fatal error: not input files)
-  gcc 2> /dev/null
-  if [ $? -eq 127 ]; then
-    # default v9.4 in ubuntu 20.04
-    sudo apt install -y gcc g++
-  else
-    echo "- c/c++ \t ok!"
-  fi
-}
-
-# v1.21+
-install_go() {
-  go version 1> /dev/null 2> /dev/null
-  # 127 means command not found, need install
-  if [ $? -eq 127 ]; then
-    cd /opt
-    sudo wget https://go.dev/dl/go1.21.5.linux-amd64.tar.gz
-    sudo tar -C /usr/local/etc/ -zxf go1.2*
-    sudo ln -s /usr/local/etc/go/bin/* /usr/local/bin/
-  else
-    echo "- go 1.21 \t ok!"
-  fi 
+  # python3 relate
+  # python3-dev exists <Python.h>
+  sudo apt install -y python-dev python3-dev \
+    python3-distutils python-setuptools
+  sudo apt autoremove -y
 }
 
 # v2.7.18
 install_python2() {
+  local v='2.7.18'
   python2 -V 2> /dev/null
   if [ $? -eq 127 ]; then
-    cd /opt
-    if [ ! -f Python-2.7.18.tgz ]; then
-      sudo wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-    fi
-    sudo tar zxf Python*
-    cd Python-2.7.18
+    sudo apt install -y wget
+    sudo wget -nc -P /opt \
+      https://www.python.org/ftp/python/$v/Python-$v.tgz
+
+    sudo tar zxf /opt/Python* -C /usr/local/src
+
+    cd /usr/local/src/Python-2.7.18
     sudo ./configure --enable-optimizations
     sudo make altinstall
     sudo ln -sfn '/usr/local/bin/python2.7' /usr/bin/python2
@@ -101,24 +48,36 @@ install_python2() {
   fi
 }
 
+# gnu: gcc g++, default v13.2 in ubuntu2404
+install_gnu() {
+  # ignore the prompt (fatal error: not input files)
+  gcc 2> /dev/null
+  if [ $? -eq 127 ]; then
+    local op=0
+    read -p "no C/C++ env yet, install them by default? [Y/n] " op
+    case $op in
+      Y | y | 1) sudo apt install -y gcc g++ ;;
+      * ) echo "Abort."; exit
+    esac
+  fi
+
+  gcc --version | head -n 1
+}
+
 # v23.6+
 download_lede() {
   local op=0
   if [ -d lede ]; then
-    read -p "lede repo have exist, need download it again?" op
+    read -p "lede repo have exist, need download it again? [Y/n] " op
     case $op in 
-      Y | y | 1) rm -rf lede 
-        git clone --depth 1 -b $tag https://github.com/coolsnowwolf/lede.git;; 
-      *)  echo "lede repo have exist."
-    esac
-  else
-    read -p "will clone tag $1? [Y/n] " op
-    case $op in 
-      Y | y | 1) 
-        git clone --depth 1 -b $tag https://github.com/coolsnowwolf/lede.git;; 
-      *)  echo "lede repo have not download."
+      Y | y | 1) sudo rm -rf lede ;; 
+      *) return
     esac
   fi
+
+  # 85M 不一定能 clone 下来
+  sudo git clone --depth 1 -b $tag https://github.com/coolsnowwolf/lede.git
+  sudo chmod 777 lede
 }
 
 # add new lib in openwrt (insert link in the first row)
@@ -144,34 +103,17 @@ update_lede() {
 
 # ----- -----  main()  ----- -----
 
-init_tools
-
-echo "- env --- start --- -"
-install_git   # first of all
-install_gnu   # gcc g++
-install_go
-install_cmake
-install_python2
-
-# python3 relate
-sudo apt install -y python3-distutils python-setuptools
-sudo apt install -y python-dev python3-dev  # need find <Python.h>
-echo "- env --- setok --- -"
-
-op=0
-read -p "install lede? [Y/n] " op
-case $op in 
-  Y | y | 1) ;;
-  *) echo "lede not installed!"; exit
-esac
+check_env
 
 # step 1 select special version
 tag="20230609"
 op=1
 read -p  "which version?
-  [1] 20230609	  [2] 20221001  [3] 20211107
+  [1] 20230609  [2] 20221001  [3] 20211107
+  [n] cancel
 select (default $tag) > " op
 case $op in 
+  n) echo "not installed"; exit;;
   3) tag="20211107";;
   2) tag="20221001";;
   *) tag="20230609"
