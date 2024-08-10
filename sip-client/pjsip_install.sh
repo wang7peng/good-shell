@@ -5,7 +5,7 @@ set -u
 #  platform: ubuntu22
 
 # ----- ----- version conf ----- -----
-pjproject='2.14'
+pjproject='2.14.1'
 opus='1.4'
 
 pkg=pjproject-${pjproject}.tar.gz # 9.8M
@@ -38,8 +38,7 @@ check_env() {
 
   # check gnu make
   make -v 1> /dev/null 2> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y make
-  fi
+  [ $? -eq 127 ] && sudo apt install -y make
 
   # make -v | head -n 1
   local ver=$(make --version | head --lines=1 | awk '{print $3}')
@@ -54,11 +53,10 @@ install_opus() {
 
   # 不能在终端直接使用 opus_demo 命令, 因为没有自动装到 /xxx/bin
   local c=`sudo find /usr/local -name opus_demo | wc -l`
-  if [ $c -gt 0 ]; then return 0; fi
+  [ $c -gt 0 ] && return 0
 
-  if [ ! -f /opt/$pkg_opus ]; then
-    sudo wget --directory-prefix='/opt' --no-verbose $url
-  fi
+  sudo wget --directory-prefix='/opt' --no-verbose -nc \
+    $url
 
   sudo rm -rf /usr/local/src/opus-$opus
   sudo tar -xzf /opt/$pkg_opus -C /usr/local/src
@@ -71,23 +69,27 @@ install_opus() {
   sudo make install
 }
 
-# get pkg of pjsip
+# get pkg or repo of pjsip
 #
 download_pj() {
-  local pkg_tag=${pjproject}.tar.gz
-  local url=https://github.com/pjsip/pjproject/archive/refs/tags/$pkg_tag
+  local url=https://github.com/pjsip/pjproject
+  if [ $1 == 'repo' ]; then
+    cd /usr/local/src
+    sudo git clone --depth 1 -b ${pjproject} ${url}.git
+    return
+  fi
 
   # wget -nc 已存在文件不下载, 只要包名中含有对应版本号, 不用担心新旧包重名
-  sudo wget --no-clobber --no-verbose -O /opt/$pkg $url
-
+  sudo wget --no-clobber -O /opt/$pkg \
+    ${url}/archive/refs/tags/${pjproject}.tar.gz
   ls -h -og --color=auto /opt
+
+  if [ ! -d /usr/local/src/${pjproject%.tar*} ]; then
+    sudo tar -zxf /opt/$pkg -C /usr/local/src
+  fi
 }
 
 build_pj() {
-  cd /usr/local/src/pjproject-${pjproject}
-
-  sudo ./configure --prefix=/usr/local/etc/pjsip
-
   local op=0
   read -p "start make? [Y/n] " op
   case $op in
@@ -100,17 +102,20 @@ build_pj() {
 }
 
 # ----- ----- main ----- -----
-check_env
+#check_env
 
+loc=`pwd`
 install_opus # must
+cd $loc
 
-download_pj
+#step1 download
+download_pj 'pkg'
 
-cd /usr/local/src
-if [ ! -d pjproject-${pjproject} ]; then
-  sudo tar -xzf /opt/$pkg -C /usr/local/src
-fi
+#step2 configure
+cd /usr/local/src/pjproject*
+sudo ./configure --prefix=/usr/local/etc/pjsip
 
+#step3 build
 build_pj
 
 echo "install ok, clear yourself"

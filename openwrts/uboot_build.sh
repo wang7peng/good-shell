@@ -7,7 +7,8 @@
 set -u
 
 # ----- ----- version conf ----- -----
-buildroot='2024.05.1'
+buildroot='2024.08.1'
+uboot='2024.10'
 
 check_env() {
   # menuconfig need flex+bison
@@ -36,8 +37,27 @@ buildroot_comiple() {
   make
 }
 
-# ----- ----- main ----- -----
+download_pkg() {
+  local verYM=$uboot
+  local op=1
+  read -p  "which uboot? 
+	  1 u-boot-2018.09  # 12M
+	  2 u-boot-2021.10  # 17M
+	  3 u-boot-2024.10  # 25M
+select (default $uboot) > " op
 
+  case $op in 
+    1) verYM="2018.09";;
+    2) verYM="2021.10";;
+    3) verYM="2024.10";;
+    *)
+  esac 
+
+  pkg=u-boot-$verYM.tar.bz2
+  sudo wget -nc -P /opt https://ftp.denx.de/pub/u-boot/$pkg
+}
+
+# ----- ----- main ----- -----
 check_env
 
 # step 1 get buildroot 
@@ -54,39 +74,23 @@ esac
 
 # set up env of mips
 export ARCH=mips
-export CROSS_COMPILE=/home/wangpeng/Desktop/buildroot-2023.11/output/host/bin/mipsel-linux-
+export CROSS_COMPILE=/usr/local/src/buildroot-$buildroot/output/host/bin/mipsel-linux-
 
 # step 2 get u-boot
-verYM="2024.10"
-op=1
-read -p  "which uboot? 
-          1 u-boot-2018.09  # 12M
-	  2 u-boot-2021.10  # 17M
-	  3 u-boot-2024.07  # 25M
-select (default 2024.10) > " op
-
-case $op in 
-  1) verYM="2018.09";;
-  2) verYM="2021.10";;
-  3) verYM="2024.01";;
-  *)
-esac 
-
-pkg=u-boot-$verYM.tar.bz2
-sudo  wget -nc -P /opt https://ftp.denx.de/pub/u-boot/$pkg
+download_pkg
 
 cd ~/Desktop
 if [ ! -d u-boot-$verYM ]; then
   tar jxf /opt/$pkg -C .
 fi
 
+# step 3 configure
 cd u-boot-$verYM
-
 make menuconfig
 
 export ARCH=mips
-#export STAGING_DIR=/home/wangpeng/Desktop/openwrt-22.03.6/staging_dir/toolchain-mipsel_24kc_gcc-11.2.0_musl/
-#export CROSS_COMPILE=/home/wangpeng/Desktop/openwrt-22.03.6/staging_dir/toolchain-mipsel_24kc_gcc-11.2.0_musl/bin/mipsel-openwrt-linux-
+#export STAGING_DIR=$HOME/Desktop/openwrt-22.03.6/staging_dir/toolchain-mipsel_24kc_gcc-11.2.0_musl/
+#export CROSS_COMPILE=$HOME/Desktop/openwrt-22.03.6/staging_dir/toolchain-mipsel_24kc_gcc-11.2.0_musl/bin/mipsel-openwrt-linux-
 
 make 
 
