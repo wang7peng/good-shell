@@ -31,7 +31,7 @@ system_requirement() {
   #replace_make
 
   install_git
-  install_python2
+  bash ../language/python2_install.sh
 }
 
 # v4.3 => v4.4.1
@@ -69,25 +69,6 @@ function install_git {
   git config --global user.email "18795975517@163.com"
   git config --global http.sslVerify "false"
   git config --global core.autocrlf input
-}
-
-install_python2() {
-  python2 -V 2> /dev/null
-  if [ $? -ne 127 ]; then return 0
-  fi
-  
-  local pkg='Python-2.7.18.tgz'
-  if [ ! -f /opt/$pkg ]; then
-    sudo wget -P /opt https://www.python.org/ftp/python/2.7.18/$pkg
-  fi
-  sudo tar -zxf /opt/Python-2.* -C /usr/local/src
-
-  cd /usr/local/src/Python-2.7.18
-  sudo ./configure --enable-optimizations --with-pydebug
-  sudo make altinstall
-  sudo ln -sfn '/usr/local/bin/python2.7' /usr/bin/python2
-
-  #sudo update-alternatives --config python
 }
 
 function download_asterisk {

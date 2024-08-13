@@ -2,28 +2,6 @@
 
 set -u
 
-
-# v2.7.18
-install_python2() {
-  python2 -V 2> /dev/null
-  if [ $? -eq 127 ]; then
-    cd /opt
-    if [ ! -f Python-2.7.18.tgz ]; then
-      sudo wget https://www.python.org/ftp/python/2.7.18/Python-2.7.18.tgz
-    fi
-    sudo tar zxf Python*
-    cd Python-2.7.18
-    sudo ./configure --enable-optimizations
-    sudo make altinstall
-    sudo ln -sfn '/usr/local/bin/python2.7' /usr/bin/python2
-    sudo update-alternatives --config python
-    cd ..
-    cd ~/Desktop
-  else
-    echo "- python2 \t ok!"
-  fi
-}
-
 # include: tar awk
 init_tools() {
   sudo apt-get update
@@ -124,8 +102,7 @@ init_tools
 
 init_64need32
 install_uboot
-install_python2
-echo "- env --- setok --- "
+bash ../language/python2_install.sh
 
 if [ ! -d 'openwrt-hiwooya'  ]; then
   git clone --depth 1 https://github.com/hi-wooya/openwrt-hiwooya.git

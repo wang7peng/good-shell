@@ -16,36 +16,13 @@ check_env() {
   sudo apt install -y tree gawk swig \
     libncurses5-dev libz-dev
 
-  install_python2
+  bash ../language/python2_install.sh
 
   # python3 relate
   # python3-dev exists <Python.h>
   sudo apt install -y python-dev python3-dev \
     python3-distutils python-setuptools
   sudo apt autoremove -y
-}
-
-# v2.7.18
-install_python2() {
-  local v='2.7.18'
-  python2 -V 2> /dev/null
-  if [ $? -eq 127 ]; then
-    sudo apt install -y wget
-    sudo wget -nc -P /opt \
-      https://www.python.org/ftp/python/$v/Python-$v.tgz
-
-    sudo tar zxf /opt/Python* -C /usr/local/src
-
-    cd /usr/local/src/Python-2.7.18
-    sudo ./configure --enable-optimizations
-    sudo make altinstall
-    sudo ln -sfn '/usr/local/bin/python2.7' /usr/bin/python2
-    sudo update-alternatives --config python
-    cd ..
-    cd ~/Desktop
-  else
-    echo "- python2 \t ok!"
-  fi
 }
 
 # gnu: gcc g++, default v13.2 in ubuntu2404
