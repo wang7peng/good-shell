@@ -116,12 +116,12 @@ function addenv2path {
   if [ ! -f $confFile ]; then sudo touch $confFile
   fi
   
-  if [ $(grep 'go/bin' $confFile | wc -l) -eq 0 ]; then
+  if [ $(grep -c 'go/bin' $confFile) -eq 0 ]; then
     echo "export PATH=\$PATH:$1" | sudo tee -a $confFile
   fi
   echo $PATH | tr ':' '\n'
 
-  if [ $(echo $PATH | tr ':' '\n' | grep 'go/bin' | wc -l) -eq 0 ]; then
+  if [ $(echo $PATH | tr ':' '\n' | grep -c 'go/bin') -eq 0 ]; then
     # source /etc/profile
     echo "remember source /etc/profile, then run this script again!"
     exit 

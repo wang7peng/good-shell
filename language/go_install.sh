@@ -3,7 +3,7 @@
 set -u
 
 # ----- ----- version conf ----- -----
-go='1.22.4'
+go='1.22.6'
 ######################################
 
 # need tools to download and display, wget tree
@@ -60,17 +60,16 @@ function tar2pos {
 }
 
 # add a item value to PATH
-# echo 'export PATH=\$PATH:xxx' | sudo tee -a /etc/profile.d/xxx.sh
 function addenv2path {
   local confFile='/etc/profile.d/wangpeng.sh'
   [ ! -f $confFile ] && sudo touch $confFile
  
-  if [ $(grep 'go/bin' $confFile | wc -l) -eq 0 ]; then
+  if [ $(grep -cn 'go/bin' $confFile) -eq 0 ]; then
     echo "export PATH=\$PATH:$1" | sudo tee -a $confFile
     echo $PATH | tr ':' '\n'
   fi
 
-  if [ $(echo $PATH | tr ':' '\n' | grep 'go/bin' | wc -l) -eq 0 ]; then
+  if [ $(echo $PATH | tr ':' '\n' | grep -c 'go/bin') -eq 0 ]; then
     # source /etc/profile
     \. /etc/profile
     echo "remember source /etc/profile, then run this script again!"

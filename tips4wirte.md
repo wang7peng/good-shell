@@ -30,4 +30,49 @@ sudo ln -s /usr/local/etc/go/bin/* /usr/local/bin/
 `mysql -Ne "xxx;"` 去掉显示表格式的头行，必须先 `-N` 再 `-e`
 
 
+### 环境问题
+
+**更新路径变量**
+安装完成后需要让命令能随处可用，可以用软链接，也可以更新路径变量。
+最好先看一下新产生的 bin 目录，如果产生的命令少（如 `ffmpeg` 只有两个），就直接 `ln -s` ，
+如果有很多新命令，就用 `export PATH=$PATH:xxx/bin` 方法。
+这样可以避免 `/usr/local/bin` 内容较多，影响感观。不然过一段时间后，不知道这些东西怎么来的了。
+
+```shell
+# e.g 将这个 bin 目录加入到 $PATH
+local b=/usr/local/etc/go/bin
+
+# way1
+echo 'export PATH=\$PATH:$b' >> /etc/profile
+
+# way2 推荐
+echo 'export PATH=\$PATH:$b' | sudo tee -a /etc/profile
+echo 'export PATH=\$PATH:$b' | sudo tee -a ~/.bashrc
+
+\. ~/.bashrc
+```
+
+语句 echo 部分的格式差不多，写法推荐第二个，后面存放的文件位置可换。
+
+路径变量 PATH 的更新位置有多个，可以是 `.bashrc`, `/etc/profile` 或者 `/etc/profile.d/` 子目录。
+推荐 `.bashrc`。
+如果写在 `profile` 相关的地方, 还需要重启系统，不然每次新开 terminal 都会失效。
+因为使用 `. /etc/profile` 只在当前环境生效，新开一个终端就没有用了。
+（关闭当前 terminal 或者退出脚本都会失效）只有重启系统才永久有效。
+
+> **Warn** 中间的一个 `PATH` 前面要加上 `\$` ，不然最后在配置脚本中会将内容展开。
+在脚本里面 . 要起和 source 相同的作用，也需要在前面加上 `\`
+
+多次执行脚本，就需要防止重复将 `export` 语句写入。
+可以用 `grep` 查找配置脚本中的内容，或者直接看变量的
+
+```shell
+grep ‘xxx’ filename
+
+echo $PATH | tr ':' '\n' | grep xxx
+``
+
+grep 本身有 `-c` 选项去统计出现的行数，不使用 `grep xxx | wc -l` 多此一举。
+它还有 `-n` 参数可以把找到的那些行显示出来，与 `if... ;then` 合理搭配，方便核实。
+
 **TODO**
