@@ -7,12 +7,12 @@ set -u
 #  Desc: 安装完 freepbx.iso 后增加设置
 #
 #  Note: root运行
+#        default pw: SangomaDefaultPassword
 # ----- ----- ----- ----- ----- -----
 
 ####################  version  control  ####################
 git='2.44.0'
 go='1.22.1'
-python='3.12.2'
 ############################################################
 
 replace_gcc() {
@@ -85,31 +85,6 @@ replace_make() {
   cd $pos
 }
 
-# only python2.7.5 existed by default
-install_python() {
-  python3 --version 1> /dev/null &2> 1
-  if [ $? -ne 127 ]; then
-    local verMid=$(python3 --version | tr '.' ' ' | awk '{print $3}') 
-    if [ $verMid -gt 11 ]; then return 0;
-    fi
-  fi
-
-  local ver=$python
-  local pkgName=Python-$ver.tar.xz
-  if [ ! -f /opt/$pkgName ]; then sudo wget --no-verbose -P /opt \
-    https://www.python.org/ftp/python/${ver}/$pkgName
-  fi
-  sudo tar -xf /opt/$pkgName -C /usr/local/src
-
-  yum install -y openssl-devel 
-  local pos=`pwd`
-  cd /usr/local/src/${pkgName%.tar*}
-  ./configure --with-ssl
-  make 
-  sudo make install
-  cd $pos
-}
-
 # same: echo 'export PATH=$PATH:/usr/local/etc/go/bin' >> /etc/profile
 function addenv2path {
   local confFile='/etc/profile.d/wangpeng.sh'
@@ -162,7 +137,8 @@ git config --global user.email "18795975517@163.com"
 git config --global http.sslVerify "false"
 git config --global core.autocrlf input
 
-install_python
+# only python2.7.5 existed by default
+bash language/python3_centos.sh
 
 install_go "go$go"
 
