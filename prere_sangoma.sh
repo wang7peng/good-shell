@@ -15,6 +15,18 @@ git='2.44.0'
 go='1.22.1'
 ############################################################
 
+tip() {
+  echo "provide options: "
+  echo -e "\t [1] c        update c"
+  echo -e "\t [2] git      update git $git"
+  echo -e "\t [3] go       install go $go"
+  echo -e "\t [4] py       install python3"
+  echo -e "\t [9] all\n"
+
+  echo -e "e.g: add environment of go language"
+  echo -e "\t bash xxx.sh go "
+}
+
 replace_gcc() {
   local infoGCC=$(gcc --version | head --lines=1 | awk '{print $3}')
   local verMax=${infoGCC%%.*}
@@ -107,12 +119,12 @@ function addenv2path {
 install_go() {
   go version 2> /dev/null
   if [ $? -ne 127 ]; then 
-    if [[ $1 == `go env GOVERSION` ]]; then 
+    if [[ go$go == `go env GOVERSION` ]]; then
       return 0; # don't reinstall when their version are consistent
     fi
   fi
   # e.g.  go1.22.3.linux-amd64.tar.gz
-  local pkgName=$1.linux-amd64.tar.gz
+  local pkgName=go$go.linux-amd64.tar.gz
 
   if [ ! -f /opt/$pkgName ]; then sudo wget -P /opt  \
     --no-verbose https://go.dev/dl/$pkgName
@@ -125,24 +137,44 @@ install_go() {
 
 # ----- ----- main ----- -----
 sudo yum install -y lrzsz \
-  bison flex texinfo
+  bison flex texinfo tree
 
-replace_make
-replace_gcc
+args=("$@")
+if [ ${#args[@]} -eq 0 ]; then tip
+  exit
+fi
 
-install_git
+while (( $# !=0 )); do
+  case $1 in
+    h | -h | --help ) tip; exit
+      ;;
+    1 | c | --c ) replace_gcc
+      ;;
+    2 | git | --git )
+      install_git
 
-git config --global user.name "wangpeng"
-git config --global user.email "18795975517@163.com"
-git config --global http.sslVerify "false"
-git config --global core.autocrlf input
+      git config --global user.name "wangpeng"
+      git config --global user.email "18795975517@163.com"
+      git config --global http.sslVerify "false"
+      git config --global core.autocrlf input
+      ;;
+    3 | go | --go )
+      install_go
 
-# only python2.7.5 existed by default
-bash language/python3_centos.sh
+      go env -w GOPRIVATE=https://go.pfgit.cn
+      go env -w GOPROXY=https://proxy.golang.com.cn,direct
+      go env -w GO111MODULE=on
+      go env -w GOSUMDB=off
+      ;;
+    4 | py | python | python3)
+      # only python2.7.5 existed by default
+      bash language/python3_install.sh
+      ;;
+    5 | make ) replace_make
+      ;;
+    *)
+  esac
 
-install_go "go$go"
+  shift
+done
 
-go env -w GOPRIVATE=https://go.pfgit.cn
-go env -w GOPROXY=https://proxy.golang.com.cn,direct
-go env -w GO111MODULE=on
-go env -w GOSUMDB=off
