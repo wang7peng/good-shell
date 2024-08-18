@@ -14,6 +14,7 @@ set -u
 ####################  version  control  ####################
 asterisk='21.1.0'
 
+git='2.46.0'
 go='1.22.0'
 ############################################################
 
@@ -134,7 +135,11 @@ check_env() {
   # default add gcc(v12.2) 
   sudo apt install -y build-essential
 
-  install_git
+  bash ./apps/git_debian.sh $git
+  git config --global user.name "wangpeng"
+  git config --global user.email "18795975517@163.com"
+  git config --global http.sslVerify "false"
+  git config --global core.autocrlf input
 
   sudo apt install -y \
     libnewt-dev libssl-dev libncurses5-dev libsqlite3-dev \
@@ -199,15 +204,6 @@ add_user() {
   sudo chown -R asterisk:$userName /etc/asterisk
   sudo chown -R asterisk:$userName /var/{lib,log,spool}/asterisk
   sudo chown -R asterisk:$userName /usr/lib/asterisk
-}
-
-install_git() {
-  sudo apt install -y git #default v2.39
-
-  git config --global user.name "wangpeng"
-  git config --global user.email "18795975517@163.com"
-  git config --global http.sslVerify "false"
-  git config --global core.autocrlf input
 }
 
 # install or update go (v1.21+)

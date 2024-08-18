@@ -30,7 +30,12 @@ system_requirement() {
 
   #replace_make
 
-  install_git
+  bash ../apps/git_debian.sh
+  git config --global user.name "wangpeng"
+  git config --global user.email "18795975517@163.com"
+  git config --global http.sslVerify "false"
+  git config --global core.autocrlf input
+
   bash ../language/python2_install.sh
 }
 
@@ -57,18 +62,6 @@ function replace_make {
   sudo make install
   # old make in /usr/bin/, suggest to del it
   sudo rm /usr/bin/make
-}
-
-# default 2.39
-function install_git {
-  git --version 2> /dev/null
-  if [ $? -eq 127 ]; then sudo apt install -y git
-  fi
-
-  git config --global user.name "wangpeng"
-  git config --global user.email "18795975517@163.com"
-  git config --global http.sslVerify "false"
-  git config --global core.autocrlf input
 }
 
 function download_asterisk {
