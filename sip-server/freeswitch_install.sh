@@ -19,6 +19,8 @@ check_tool() {
   if [ $? -eq 127 ]; then echo "install cmake first!"; exit
   fi
   cmake --version | head --lines=1
+
+  export PATH=$PATH:/usr/sbin #ldconfig
 }
 
 check_env() {
@@ -93,7 +95,7 @@ install_module-ffmpeg() {
 
 install_module-languages() {
   # java
-  # TODO
+  bash ../language/java_install.sh
 
   # lua
   sudo apt install -y liblua5.3-dev liblua5.2-dev liblua5.2-0
@@ -164,12 +166,12 @@ install_sofiaSip() {
 }
 
 # ----- ----- main ----- -----
-
+check_tool
 op=0
 read -p "never check env? [Y/n] " op
 case $op in
   N | n | 0);;
-  *) check_tool; check_env2
+  *) check_env2
      install_db
      install_module-ffmpeg
      install_module-languages
@@ -177,6 +179,7 @@ case $op in
      sudo apt autoremove -y
 esac
 
+cd ~
 # install libks first
 # use libks directly will match libksba
 ldconfig -p | grep libks2.so
