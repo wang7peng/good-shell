@@ -102,20 +102,31 @@ install_module-languages() {
   sudo apt install -y libperl-dev python-dev 
 }
 
+# 源码用完就删，不放 /usr/local/src，避免权限问题
 install_libks() {
+  local loc=/usr/local/etc/libks
   sudo apt install -y uuid-dev
 
-  cd /usr/local/src
-  if [ ! -d libks ]; then
-    # Don't add --depth 1
-    sudo git clone https://github.com/signalwire/libks.git
-  fi
+  [ -d libks ] && sudo rm -rf libks
+  # Don't add --depth 1
+  git clone https://github.com/signalwire/libks.git
+
   cd libks
-  sudo cmake . 
-  sudo make
+  # 不能额外设置 build 目录, 不然安装时找不到 xxx.Debian.gz 文件
+  cmake . -B . -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX:PATH=$loc
+  cmake --build . # = make
   sudo make install
-  sudo ldconfig 
-  cd ~/Desktop  
+
+  sudo ldconfig
+  # setup libks2.pc location
+  if [ $(grep -cn "$loc/lib" $HOME/.bashrc) -eq 0 ]; then
+    echo "export PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:$loc/lib/pkgconfig" |\
+      sudo tee -a $HOME/.bashrc
+    \. $HOME/.bashrc
+  fi
+  cd ..
+  sudo rm -rf libks
 }
 
 install_signalwire() {
@@ -183,8 +194,7 @@ cd ~
 # install libks first
 # use libks directly will match libksba
 ldconfig -p | grep libks2.so
-if [ $? -eq 1 ]; then install_libks
-fi
+[ $? -eq 1 ] && install_libks
 
 ldconfig -p | grep signalwire
 if [ $? -eq 1 ]; then install_signalwire
