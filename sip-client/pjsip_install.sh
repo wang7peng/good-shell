@@ -89,33 +89,32 @@ download_pj() {
   fi
 }
 
-build_pj() {
-  local op=0
-  read -p "start make? [Y/n] " op
-  case $op in
-    Y | y | 1) sudo make dep
-      sudo make;;
-    *) return 0
-  esac
+config_pj() {
+  loc=`pwd`
+  install_opus # must
+  cd $loc
 
-  sudo make install
+  ./configure --prefix=/usr/local/etc/pjsip \
+    --disable-speex-aec \
+    --disable-gsm-codec \
+    --disable-speex-codec \
+    --with-sdl=/usr/local/etc/sdl
 }
 
 # ----- ----- main ----- -----
-#check_env
-
-loc=`pwd`
-install_opus # must
-cd $loc
+check_env
 
 #step1 download
 download_pj 'pkg'
 
 #step2 configure
 cd /usr/local/src/pjproject*
-sudo ./configure --prefix=/usr/local/etc/pjsip
+sudo chmod -R 777 .
+config_pj
 
 #step3 build
-build_pj
+sudo make dep
+sudo make
 
+sudo make install
 echo "install ok, clear yourself"
