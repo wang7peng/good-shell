@@ -140,6 +140,7 @@ function build_libpri {
 # dahdi -> libpri
 function install_prereq {
   local pos=`pwd`
+  sudo apt install -y libedit-dev libxml2-dev
   
   download_dahdi $dahdi;
   if [ ! -f /etc/init.d/dahdi ]; then build_dahdi
@@ -150,16 +151,6 @@ function install_prereq {
   if [ $? -eq 1 ]; then build_libpri
   fi
 
-  cd /usr/local/src/asterisk-$asterisk
-
-  local op=0
-  read -p "install prereq? [Y/n]" op
-  case $op in
-    1 | Y | y) 
-      sudo contrib/scripts/get_mp3_source.sh
-      sudo contrib/scripts/install_prereq install ;;
-    *)
-  esac
   cd $pos
 }
 
@@ -178,31 +169,27 @@ function extract_tar2pos {
   sudo tar -xzf /opt/$tar -C $pos
 }
 
-# 7.5M
-function download_pjproject {
-  local ver='2.13.1'
-  if [ $# -eq 1 ]; then ver=$1
-  fi
+config_asterisk() {
+  install_prereq
 
-  local pkg=pjproject-${ver}.tar.bz2
-  if [ -f /opt/$pkg ]; then sudo cp /opt/$pkg /tmp
-  fi
+  local op=0
+  read -p "install prereq? (default not) [Y/n]" op
+  case $op in
+    1 | Y | y)
+      sudo contrib/scripts/get_mp3_source.sh
+      sudo contrib/scripts/install_prereq install ;;
+    *)
+  esac
 
-  # need walk through walls
-  if [ ! -f /tmp/$pkg ]; then sudo wget --directory-prefix='/tmp' \
-    https://raw.githubusercontent.com/asterisk/third-party/master/pjproject/$ver/$pkg
-  fi
+  # default prefix=/usr/local
+  sudo ./configure \
+    --with-jansson-bundled \
+    --with-libjwt-bundled \
+    --without-pjproject-bundled
 }
 
 # build and install
 build_asterisk() {
-  # configure need pjproject package in /tmp
-  download_pjproject $pjproject
- 
-  cd /usr/local/src/asterisk-$asterisk
-  # default prefix=/usr/local
-  sudo ./configure
-
   sudo make menuselect
 
   local op=0
@@ -235,8 +222,8 @@ system_requirement
 download_asterisk $asterisk
 extract_tar2pos
 
-install_prereq
-
+cd /usr/local/src/$dir
+config_asterisk
 build_asterisk
 
 sudo systemctl restart asterisk
