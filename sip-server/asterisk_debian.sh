@@ -163,20 +163,18 @@ function install_prereq {
   cd $pos
 }
 
-# put code in /usr/local/src/asterisk-21.1.0/
+# put code in /usr/local/src/asterisk-21.?.?/
+# $1    pos, default /usr/local/src
 function extract_tar2pos {
+  local pos='/usr/local/src'; [ $# -gt 0 ] && pos=$1
+
   # asterisk-21-current.tar.gz
   # asterisk-20.6.0.tar.gz
   local tar=asterisk-${asterisk%%.*}*.tar.gz
-  local pos='/usr/local/src'
-  if [ $# -gt 0 ]; then tar=$1
-  fi
+  # get special version in xxx-current.tar.gz case
+  dir=`tar -ztf /opt/$tar | head -1`
 
-  if [ -d $pos/asterisk-$asterisk ]; then
-    echo "don't need extract!"; return 0
-  fi
-
-  sudo rm -rf $pos/asterisk-$asterisk
+  [ -d $pos/$dir ] && return 0
   sudo tar -xzf /opt/$tar -C $pos
 }
 
