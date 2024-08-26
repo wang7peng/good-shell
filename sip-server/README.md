@@ -1,3 +1,13 @@
+## 目录内容
+
+- asterisk\_centos
+- asterisk\_debian
+- freepbx\_install.sh
+- starfish.yml
+
+其中关于 asterisk 的部分。
+centos 和 yml 配套，是书上案例，debian 是按照官网的教程。
+
 一些第三库绑定的，在 `configure` 的时候会去检测下载，
 `--with-xxx` 系列参数可以控制是用项目自带的第三方库还是用自己手动安装好了的。
 （自己手动的都装在 `/usr/local/etc/xxx` ）
