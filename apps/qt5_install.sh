@@ -55,22 +55,51 @@ fix_bug() {
   fi
 }
 
+config_debian() {
+  # virtual keyboard module need hunspell lib
+  sudo apt install -y \
+    libhunspell-dev \
+    libxcb-xfixes0-dev
+
+  # skip qtlocation 避免 debian qtmapboxgl 找不到
+  ./configure -opensource \
+    -prefix $installdir \
+    -confirm-license \
+    -nomake tests \
+    -skip qtlocation \
+    -shared
+}
+
+addenv2path() {
+  local cfg=$HOME/.bashrc
+  local b=$installdir/bin
+
+  [ $(grep -cn $b $cfg) -eq 0 ] &&
+    echo "export PATH=\$PATH:$b" | sudo tee -a $cfg
+
+  local pc=$installdir/lib/pkgconfig
+  [ $(grep -cn $pc $cfg) -eq 0 ] &&
+    echo "PKG_CONFIG_PATH=\$PKG_CONFIG_PATH:$pc" |\
+      sudo tee -a $cfg
+
+  \. $cfg
+}
+
 # ---------- ---------- ---------- ----------
 if [ -d ~/Desktop ]; then cd ~/Desktop; else
   cd $HOME
 fi
+
+pkg-config --modversion Qt5Core
+test $? -eq 0 && exit
 
 check_tools
 download_pkg
 
 cd /usr/local/src/qt*
 fix_bug
-
-./configure -opensource \
-  -prefix $installdir \
-  -confirm-license \
-  -shared
+config_debian
 
 make
 sudo make install
-
+addenv2path
