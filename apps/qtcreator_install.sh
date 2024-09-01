@@ -3,19 +3,16 @@
 set -u
 
 # ----- ----- version ----- -----
-qtcreator="12.0.2"
+qtcreator="14.0.1"
 # ----- ----- --- --- ----- -----
 
 # download run file to /opt
 download_run() {
-  local pkg=qt-creator-opensource-linux-x86_64-$qtcreator.run # 200M
+  pkg=qt-creator-opensource-linux-x86_64-$qtcreator.run # 200M
   local verM=${qtcreator%.*} # 12.0
   local url=https://download.qt.io/official_releases/qtcreator/$verM/$qtcreator/$pkg
 
-  if [ ! -f /opt/$pkg ]; then
-    sudo wget --directory-prefix='/opt' --no-verbose $url
-  fi
-
+  sudo wget --directory-prefix='/opt' --no-verbose -nc $url
   sudo chmod +777 /opt/$pkg
 }
 
@@ -27,6 +24,18 @@ sudo apt install -y libxcb-cursor0
 sudo apt install -y libglib2.0-bin
 # it can find env of cmake when compile 
 sudo apt install -y libgl-dev
+
+addbin2path() {
+  local d=$HOME; test $# -eq 1 && d=$1
+
+  local b=$d/qtcreator-$qtcreator/bin
+  test ! -d $b && return
+
+  if [ $(grep -cn $b ~/.bashrc) -eq 0 ]; then
+    echo "export PATH=\$PATH:$b" >> ~/.bashrc
+  fi
+  source ~/.bashrc
+}
 
 addlogo2favorite() {
   local qtdesktop="org.qt-project.qtcreator.desktop"
@@ -43,14 +52,13 @@ cd /opt
 op=0
 read -p "qt will install in root? (default not)" op
 case $op in 
-  Y | y | 1) sudo ./$pkgRun;;
-  *) ./$pkgRun
+  Y | y | 1) sudo ./$pkg
+	  addbin2path '/opt';;
+  *) ./$pkg
+     addbin2path
 esac
 
-if [ $? -eq 0 ]; then
-  echo "export PATH=\$PATH:/opt/qtcreator-$ver/bin" >> ~/.bashrc
-  source ~/.bashrc
-fi
+addbin2path
 
 # ubuntu20+
 addlogo2favorite
